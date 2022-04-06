@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
-import requests
+import requests as r
 import datetime as dt
 import csv
+from PIL import Image
+from IPython.display import display
+from urllib.parse import quote
 
 url = 'https://api.covid19api.com/dayone/country/brazil'
-resp = requests.get(url)
+resp = r.get(url)
 resp.status_code
-
 
 raw_data = resp.json()
 raw_data[0]
@@ -76,3 +78,45 @@ def create_chart(x,y, labels, kind='bar', title=''):
     }
     return chart
 
+def get_api_chart(chart):
+        url_base = 'https://quickchart.io/chart'
+        resp = r.get(f'{url_base}?c={str(chart)}')
+        return resp.content
+
+def save_image(path, content):
+    with open(path,'wb') as image:
+          image.write(content)
+            
+def display_image(path):
+    img_pil = Image.open(path)
+    display(img_pil)
+
+y_data_1 = []
+for obs in final_data[1::10]:
+    y_data_1.append(obs[CONFIRMADOS])
+    
+Y_data_2 = []
+for obs in final_data[1::10]:
+    y_data_2.append(obs[RECUPERADOS])
+    
+labels = ['confirmados', 'Recuperados']
+
+x = []
+for obs in final_data[1::10]:
+    x.append(obs[DATA].strftime('%d/%m/%Y'))
+    
+chart = create_chart(x,[y_data_1, y_data_2], labels, title= 'Grafico Confirmados x recuperados')
+chart_content = get_api_chart(chart)
+save_image('meu-grafico-covid.png', chart_content)
+display_image('meu-grafico-covid.png')
+
+def get_api_qrcode(link):
+    text = quote(link)
+    url_base = 'https://quickchart.io/qr'
+    resp = r.get(f'{url_base}?text={text}')
+    return resp.content
+
+url_base = 'https://quickchart.io/qr'
+link = f'{url_base}?c={str(chart)}'
+save_image('qr-code.png', get_api_qrcode(link))
+display_image('qr-code.png')
